@@ -14,16 +14,16 @@ import (
 func main() {
 
 	token := os.Getenv("BOT_TOKEN")
-	if token == "" {
-		panic("Missing token environment variable")
-	}
+	guild := os.Getenv("GUILD_ID")
+	channel := os.Getenv("CHANNEL_ID")
 	//URL formated such as "amqp://guest:guest@server.localhost:5672/"
 	rabbit := os.Getenv("RABBIT_URL")
-	if token == "" {
-		panic("Missing rabbit url environment variable")
+	for k, v := range map[string]string{
+		"token": token, "guild": guild, "channel": channel, "rabbit": rabbit} {
+		if v == "" {
+			panic("Missing " + k + " environment variable.")
+		}
 	}
-	guild := os.Getenv("GUILD_ID")
-	chann := os.Getenv("CHANNEL_ID")
 
 	dg, err := discordgo.New("Bot " + token)
 	failOnError(err, "error creating Discord session")
@@ -62,16 +62,15 @@ func main() {
 			log.Printf("Received a message: %s", d.Body)
 			userID := findUsersID(dg, guild, strings.Split(string(d.Body), ":")[0])
 
-			channel, err := dg.UserChannelCreate(userID)
+			directMessage, err := dg.UserChannelCreate(userID)
 			failOnError(err, "Problem with starting a DM")
 
-			dg.ChannelMessageSend(channel.ID, "Pong!")
+			dg.ChannelMessageSend(directMessage.ID, "")
 
-			dg.ChannelMessageSend(chann, "<@"+userID+"> Wysłałem ci wiadomość aktywacyjną!\nJeśli wiadomość nie została przez Ciebie otrzymana, włącz prywatne wiadomości na discordzie i spróbuj jeszcze raz")
+			dg.ChannelMessageSend(channel, "<@"+userID+"> Wysłałem ci wiadomość aktywacyjną!\nJeśli wiadomość nie została przez Ciebie otrzymana, włącz prywatne wiadomości na discordzie i spróbuj jeszcze raz")
 		}
 	}()
 
-	dg.AddHandler(sendMessage)
 	dg.AddHandler(commandHandle)
 	//dg.Identify.Intents = discordgo.IntentsGuildMessages
 
@@ -85,10 +84,6 @@ func main() {
 	wg.Add(1)
 	wg.Wait()
 
-}
-
-func sendMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
-	// WIP
 }
 
 func commandHandle(s *discordgo.Session, m *discordgo.MessageCreate) {
@@ -114,8 +109,6 @@ func commandHandle(s *discordgo.Session, m *discordgo.MessageCreate) {
 		s.ChannelMessageSend(m.ChannelID, "Nieznana komenda\nWpisz !help, aby uzyskać liste poprawnych komend!")
 	}
 
-	fmt.Println(args)
-
 }
 
 func failOnError(err error, msg string) {
@@ -129,9 +122,7 @@ func findUsersID(s *discordgo.Session, guildID string, username string) string {
 	if err != nil {
 		fmt.Println(err.Error())
 	}
-	fmt.Println(guildMembers)
 	for _, m := range guildMembers {
-		fmt.Println(m.User.Username + "#" + m.User.Discriminator)
 		if m.User.Username+"#"+m.User.Discriminator == username {
 			return m.User.ID
 		}
