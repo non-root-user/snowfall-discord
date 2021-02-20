@@ -22,6 +22,8 @@ func main() {
 	if token == "" {
 		panic("Missing rabbit url environment variable")
 	}
+	guild := os.Getenv("GUILD_ID")
+	chann := os.Getenv("CHANNEL_ID")
 
 	dg, err := discordgo.New("Bot " + token)
 	failOnError(err, "error creating Discord session")
@@ -58,6 +60,14 @@ func main() {
 	go func() {
 		for d := range msgs {
 			log.Printf("Received a message: %s", d.Body)
+			userID := findUsersID(dg, guild, strings.Split(string(d.Body), ":")[0])
+
+			channel, err := dg.UserChannelCreate(userID)
+			failOnError(err, "Problem with starting a DM")
+
+			dg.ChannelMessageSend(channel.ID, "Pong!")
+
+			dg.ChannelMessageSend(chann, "<@"+userID+"> Wysłałem ci wiadomość aktywacyjną!\nJeśli wiadomość nie została przez Ciebie otrzymana, włącz prywatne wiadomości na discordzie i spróbuj jeszcze raz")
 		}
 	}()
 
@@ -112,4 +122,19 @@ func failOnError(err error, msg string) {
 	if err != nil {
 		log.Fatalf("%s: %s", msg, err)
 	}
+}
+
+func findUsersID(s *discordgo.Session, guildID string, username string) string {
+	guildMembers, err := s.GuildMembers(guildID, "", 1000)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	fmt.Println(guildMembers)
+	for _, m := range guildMembers {
+		fmt.Println(m.User.Username + "#" + m.User.Discriminator)
+		if m.User.Username+"#"+m.User.Discriminator == username {
+			return m.User.ID
+		}
+	}
+	return ""
 }
