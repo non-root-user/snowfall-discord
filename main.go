@@ -65,7 +65,8 @@ func main() {
 			directMessage, err := dg.UserChannelCreate(userID)
 			failOnError(err, "Problem with starting a DM")
 
-			dg.ChannelMessageSend(directMessage.ID, "")
+			dg.ChannelMessageSend(directMessage.ID, "Beep boop. Twój magiczny kod aktywacyjny to: `` "+strings.Split(string(d.Body), ":")[1]+" ``")
+			dg.ChannelMessageSend(directMessage.ID, "Jeśli ta wiadomość nie powinna tutaj dotrzeć, koniecznie powiadom organizatorów wydarzenia!!!")
 
 			dg.ChannelMessageSend(channel, "<@"+userID+"> Wysłałem ci wiadomość aktywacyjną!\nJeśli wiadomość nie została przez Ciebie otrzymana, włącz prywatne wiadomości na discordzie i spróbuj jeszcze raz")
 		}
