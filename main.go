@@ -11,6 +11,8 @@ import (
 	"github.com/streadway/amqp"
 )
 
+var resendMem = make(map[string]string)
+
 func main() {
 
 	token := os.Getenv("BOT_TOKEN")
@@ -62,6 +64,8 @@ func main() {
 			log.Printf("Received a message: %s", d.Body)
 			userID := findUsersID(dg, guild, strings.Split(string(d.Body), ":")[0])
 
+			resendMem[userID] = strings.Split(string(d.Body), ":")[1]
+
 			directMessage, err := dg.UserChannelCreate(userID)
 			if err != nil {
 				fmt.Println("Problem with sending a message, or the recipient does not exist")
@@ -70,7 +74,6 @@ func main() {
 
 			dg.ChannelMessageSend(directMessage.ID, "Beep boop. Twój magiczny kod aktywacyjny to: `` "+strings.Split(string(d.Body), ":")[1]+" ``")
 			dg.ChannelMessageSend(directMessage.ID, "Jeśli ta wiadomość nie powinna tutaj dotrzeć, koniecznie powiadom organizatorów wydarzenia!!!")
-
 			dg.ChannelMessageSend(channel, "<@"+userID+"> Wysłałem ci wiadomość aktywacyjną!\nJeśli wiadomość nie została przez Ciebie otrzymana, włącz prywatne wiadomości na discordzie i użyj komendy ``!resend``")
 		}
 	}()
@@ -109,6 +112,22 @@ func commandHandle(s *discordgo.Session, m *discordgo.MessageCreate) {
 		s.ChannelMessageSend(m.ChannelID, "WIP")
 	case "source":
 		s.ChannelMessageSend(m.ChannelID, "Źródło dla bota można znaleźć na https://github.com/BenekDoesHorses/snowfall-discord")
+	case "resend":
+		if val, ok := resendMem[m.Author.ID]; ok {
+			directMessage, err := s.UserChannelCreate(m.Author.ID)
+			if err != nil {
+				fmt.Println("Problem with sending a message, or the recipient does not exist")
+				return
+			}
+			if m.ChannelID != directMessage.ID {
+				s.ChannelMessageSend(m.ChannelID, "psst, nie chce tutaj zdradzać sekretów, napisz mi prywatną wiadomość :wink:")
+				return
+			}
+			s.ChannelMessageSend(directMessage.ID, "Twój kod aktywacyjny to: `` "+val+" ``, miłej zabawy!")
+			delete(resendMem, m.Author.ID)
+		} else {
+			s.ChannelMessageSend(m.ChannelID, "Wybacz, nie mam twojego kodu, na pewno się zarejestrowałeś?")
+		}
 	default:
 		s.ChannelMessageSend(m.ChannelID, "Nieznana komenda\nWpisz !help, aby uzyskać liste poprawnych komend!")
 	}
