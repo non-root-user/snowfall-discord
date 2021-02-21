@@ -63,12 +63,15 @@ func main() {
 			userID := findUsersID(dg, guild, strings.Split(string(d.Body), ":")[0])
 
 			directMessage, err := dg.UserChannelCreate(userID)
-			failOnError(err, "Problem with starting a DM")
+			if err != nil {
+				fmt.Println("Problem with sending a message, or the recipient does not exist")
+				continue
+			}
 
 			dg.ChannelMessageSend(directMessage.ID, "Beep boop. Twój magiczny kod aktywacyjny to: `` "+strings.Split(string(d.Body), ":")[1]+" ``")
 			dg.ChannelMessageSend(directMessage.ID, "Jeśli ta wiadomość nie powinna tutaj dotrzeć, koniecznie powiadom organizatorów wydarzenia!!!")
 
-			dg.ChannelMessageSend(channel, "<@"+userID+"> Wysłałem ci wiadomość aktywacyjną!\nJeśli wiadomość nie została przez Ciebie otrzymana, włącz prywatne wiadomości na discordzie i spróbuj jeszcze raz")
+			dg.ChannelMessageSend(channel, "<@"+userID+"> Wysłałem ci wiadomość aktywacyjną!\nJeśli wiadomość nie została przez Ciebie otrzymana, włącz prywatne wiadomości na discordzie i użyj komendy ``!resend``")
 		}
 	}()
 
